@@ -4,32 +4,46 @@
 /* USING COUNT FUNCTION 
 Count the number of rows in the orders table.
 */
-
+SELECT COUNT(*) 
+FROM orders
 
 /* USING SUM FUNCTION
 Find the total amount of poster_qty paper ordered in the orders table.
 */
-
+  
+SELECT SUM(poster_qty)
+FROM orders
+  
 /*
 Find the total amount of standard_qty paper ordered in the orders table.
 */
-
+SELECT SUM(standard_qty) AS sum_standard_qty
+FROM orders
+  
 /*
 Find the total dollar amount of sales using the total_amt_usd in the orders table.
 */
-
+SELECT SUM(total_amt_usd) AS total_dollar_amount
+FROM orders
 
 /*
 Find the total amount for each individual order that was spent on standard and gloss papers in the orders table. 
 This should give a dollar amount for each order in the order table.
 */
+SELECT id,
+		SUM(standard_amt_usd) AS standard_amt,
+		SUM(gloss_amt_usd) AS gloss_amt
+FROM orders
+GROUP BY id
 
 
+*/
 Find the standard_amount_usd per unit standard quantity paper. Your solution should use both an aggregation and 
 a mathematical operator.
 */
 
-
+SELECT 	SUM(standard_amt_usd)/SUM(standard_qty) AS standard_amt
+FROM orders
 
 /* USING MIN/MAX FUNCTIONS */
 
@@ -37,23 +51,30 @@ a mathematical operator.
 When was the earliest order ever placed? Only return the date.
 */
 
+SELECT MIN(occurred_at) AS earliest_order
+FROM orders
 
 /*
 Try performing same query in the previous one without using an aggregation function.
 */
-
-
+SELECT occurred_at AS earliest_order
+FROM orders
+ORDER BY occurred_at ASC
+LIMIT 1
 
 /*
 When did the most recent(latest) web-event occur?
 */
-
-
+SELECT MAX(occurred_at) AS recent_order
+FROM web_events
 
 /*
 Try to perform the result of the previous query without using an aggregation function.
 */
-
+SELECT occurred_at AS recent_order
+FROM web_events
+ORDER BY occurred_at
+LIMIT 1
 
 /* USING AVG FUNCTION*/
 
@@ -69,25 +90,47 @@ average number of sales, as well as average amount.
 /*
 Which accounts (by name) placed the earliest order? Your solution should have the account name and the date of the order.
 */
-
+SELECT a.name AS name,
+		o.occurred_at AS earliest_order
+FROM accounts a
+JOIN orders o ON a.id = o.account_id
+ORDER BY earliest_order
+LIMIT 1
 
 
 /*
 Assuming it says for every account, find their earliest order.
 */
-
+SELECT a.name AS name,
+		MIN(o.occurred_at) AS earliest_order
+FROM accounts a
+JOIN orders o ON a.id = o.account_id
+GROUP BY name
+ORDER BY earliest_order
 
 /*
 Find the total sales in USD for each account. You should include two columns 
 - the total sales for each company for each company's orders in USD and the company name.
 */
 
+SELECT a.name AS company_name,
+		SUM(o.total_amt_usd) AS total_sales
+FROM accounts a
+JOIN orders o ON a.id = o.account_id
+GROUP BY company_name
 
 /*
 Via what channel did the most recent (latest) web event occur? Which account was associated
 with this event? Your query should return only three values - the date, channel and account name.
 */
-
+SELECT a.name AS account_name,
+		w.channel,
+		MAX(w.occurred_at) AS recent_event
+FROM accounts a
+JOIN web_events w ON a.id = w.account_id
+GROUP BY account_name, w.channel
+ORDER BY recent_event DESC
+LIMIT 1
 
 
 /*
@@ -95,23 +138,39 @@ Find the total number of times each type of channel from the web_events was used
 Your final table should have two columns - the channel and the numbber of times the channel was used.
 */
 
-
+SELECT 	w.channel,
+		COUNT(w.channel)
+FROM web_events w
+GROUP BY w.channel
 
 /*
 Who was the primary contact associated with the earliest web event?
 */
-
-
+SELECT 	a.primary_poc,
+		w.occurred_at AS earliest_web_event
+FROM accounts a
+JOIN web_events w ON a.id = w.account_id
+ORDER BY earliest_web_event
+LIMIT 1
 
 -- What was the smallest order placed by each account in terms of the total usd. Provide only two columns -
 -- the account name and the total usd. Order from the smallest dollar amount to the largest.
-
+SELECT 	a.name AS account_name,
+		o.total_amt_usd AS total_usd
+FROM accounts a
+JOIN orders o ON a.id = o.account_id
+ORDER BY total_usd
 
 /*
 Find the number of sales_rep in each region. Your final table should have two columns - the region and 
 the number of sales reps. Order from fewest reps to most reps.
 */
-
+SELECT 	r.name AS region_name,
+		COUNT(s.name) AS num_sales_rep
+FROM region r
+JOIN sales_reps s ON r.id = s.region_id
+GROUP BY region_name
+ORDER BY num_sales_rep ASC
 
 /*USING GROUP BY ON MULTIPLE COLUMNS*/
 
@@ -120,13 +179,30 @@ Determine the number of times a particular channel was used in the web_events ta
 table should have three columns - the name of the sales rep, the channel and the number of occurences. 
 Order your table with the highest number of occurences first.
 */
-
+SELECT s.name AS sales_rep,
+		w.channel,
+		COUNT(w.channel) AS occurences
+FROM web_events w
+JOIN accounts a ON w.account_id = a.id 
+JOIN sales_reps s ON a.sales_rep_id = s.id
+GROUP BY sales_rep, w.channel
+ORDER BY occurences DESC
 
 /*
 Determine the number of times a particular channel was used in the web_events table for each region.
 Your final table should have three columns - the region name, the channel and the number of occurences. 
 Order your table with the highest number of occurences first.
 */
+
+SELECT r.name AS region_name,
+		w.channel,
+		COUNT(w.channel) AS occurences
+FROM web_events w
+JOIN accounts a ON w.account_id = a.id 
+JOIN sales_reps s ON a.sales_rep_id = s.id
+JOIN region r ON s.region_id = r.id
+GROUP BY region_name, w.channel
+ORDER BY occurences DESC
 
 
 /*USING DISTINCT*/
