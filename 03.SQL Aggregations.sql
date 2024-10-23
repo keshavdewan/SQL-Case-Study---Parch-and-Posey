@@ -83,7 +83,13 @@ Find the mean (average) amount spent per order on each paper type , as well  as 
 paper type purchased per order. Your final answer should have 6 values - one for each paper type for the
 average number of sales, as well as average amount.
 */
-
+SELECT AVG(standard_qty) AS avg_standasr_qty,
+	   AVG(gloss_qty) AS avg_gloss_qty,
+	   AVG(poster_qty) AS avg_poster_qty,
+	   AVG(standard_amt_usd) AS avg_standard_amt,
+	   AVG(gloss_amt_usd) AS avg_gloss_amt,
+	   AVG(poster_amt_usd) AS avg_poster_amt
+FROM orders
 
 /*USING GROUP BY*/
 
@@ -211,57 +217,103 @@ ORDER BY occurences DESC
 Use DISTINCT to test if there are any accounts associated with more than one region
 */
 
---OR
-
-
+SELECT DISTINCT a.name,
+		r.name,
+		COUNT(*) AS occurences
+FROM accounts a
+JOIN sales_reps s ON a.sales_rep_id = s.id
+JOIN region r ON s.region_id = r.id
+GROUP BY a.name,
+	r.name
 
 /*
 Has any sales_rep worked on more than one account?
 */
+SELECT DISTINCT s.name AS sales_rep,
+		COUNT(*) AS accounts
+FROM accounts a
+JOIN sales_reps s ON a.sales_rep_id = s.id
+GROUP BY s.name
+ORDER BY accounts DESC
 
 --- Yes, all the sales_rep has worked on more than one account.
-
-
 
 /*USING HAVING CLAUSE*/
 
 /*
 How many of the sales_reps have more than five accounts that they manage?
 */
-
+SELECT DISTINCT s.name AS sales_rep,
+		COUNT(*) AS accounts
+FROM accounts a
+JOIN sales_reps s ON a.sales_rep_id = s.id
+GROUP BY s.name
+HAVING COUNT(*) > 5
+ORDER BY accounts DESC
 
 /*
 How many accounts have more than 20 orders?
 */
-
+SELECT a.name,
+	COUNT(*) AS accounts
+FROM accounts a
+JOIN orders o ON a.id = o.account_id
+GROUP BY a.name
+HAVING COUNT(*) > 20
+ORDER BY accounts DESC
 -- 120 accounts have more than 20 orders
 
 
 /*
 Which account has the most orders?
 */
-
+SELECT a.name,
+	COUNT(*) AS accounts
+FROM accounts a
+JOIN orders o ON a.id = o.account_id
+GROUP BY a.name
+ORDER BY accounts DESC
+LIMIT 1
 -- Leucadia National has the most orders.
 
 
 /*
 Which accounts spent more than 30,000 usd total across all orders?
 */
-
+SELECT a.name AS Account_name, 
+		SUM(o.total_amt_usd) AS Amount_spent
+FROM orders o
+INNER JOIN accounts a ON a.id = o.account_id
+GROUP BY a.name
+HAVING SUM(o.total_amt_usd) > 30000
+ORDER BY SUM(o.total_amt_usd) DESC
 
 /*
 Which account has spent the most with us?
 */
-
+SELECT a.name AS Account_name, 
+	SUM(o.total_amt_usd) AS Amount_spent
+FROM orders o
+INNER JOIN accounts a ON a.id = o.account_id
+GROUP BY a.name
+HAVING SUM(o.total_amt_usd) > 30000
+ORDER BY SUM(o.total_amt_usd) DESC
+LIMIT 1
 -- EOG Resources spent the most with us
 
 
 /*
 Which accounts used Facebook as a channel to contact customers more than 6 times?
 */
-
-
-
+SELECT a.name, 
+	w.channel, 
+	COUNT(*) AS total_usage
+FROM web_events w
+JOIN accounts a ON w.account_id = a.id
+WHERE w.channel LIKE 'facebook'
+GROUP BY a.id, w.channel
+HAVING COUNT(*) > 6
+ORDER BY total_usage DESC
 
 /*DATE FUNCTIONS
 Let's look at some date functions
@@ -269,47 +321,60 @@ Let's look at some date functions
 
 /* Get the curent date
 */
-
+SELECT CURRENT_DATE
 
 /*
 Get the date in UTC timezone
 */
-
+SELECT NOW() AT TIME ZONE 'UTC'
 
 /*
 Extract the month names from the occurreed-at column in the orders table.
 */
-
+SELECT TO_CHAR(occurred_at, 'Month') AS month_name
+FROM orders
 
 /*
 Extract both the month numbers and the month names from the occurred_at column in the orders table.
 */
-
-
--- Alternatively you can also use the MONTH function to return same thing as date part
+SELECT EXTRACT(MONTH FROM occurred_at) AS month_number,
+       TO_CHAR(occurred_at, 'Month') AS month_name
+FROM orders
 
 /* Now Answering some questions regarding date functions */
 
 /*
 Find the sales in terms of total dollars for all orders in each year, ordered from greatest to least.
 */
-
+SELECT EXTRACT(YEAR FROM o.occurred_at) AS year,
+       SUM(o.total_amt_usd) AS total_dollars
+FROM orders o
+GROUP BY year
+ORDER BY total_dollars DESC
 
 /*
 Do you notice any trend in the yearly sales total?
 */
-
+--Sales rose initially but dropped suddenly in 2017
 
 /*
 Which month did Parch and Posey have the greatest sales in terms of total dollars?
 Are all months evenly represented by the dataset?
 */
-
+SELECT EXTRACT(MONTH FROM o.occurred_at) AS month,
+       SUM(o.total_amt_usd) AS total_dollars
+FROM orders o
+GROUP BY month
+ORDER BY total_dollars DESC
 
 /*
 Assuming you want to return the names of the months
 */
-
+SELECT TO_CHAR(o.occurred_at, 'Month') AS month,
+       SUM(o.total_amt_usd) AS total_dollars
+FROM orders o
+GROUP BY month
+ORDER BY total_dollars DESC
 
 /*
 Which year did Parch and Posey have the greatest sales in terms of total number of orders? 
