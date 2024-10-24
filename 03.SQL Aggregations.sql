@@ -381,20 +381,24 @@ Which year did Parch and Posey have the greatest sales in terms of total number 
 Are all year evenly represented by the dataset?
 */
 
-
--- the result shows that we have incomplete data as 2013 and 2017 has less amount of orders
-
-
--- to confirm this
-
+SELECT EXTRACT(YEAR FROM o.occurred_at) AS year,
+       SUM(o.total_amt_usd) AS total_dollars
+FROM orders o
+GROUP BY year
+ORDER BY total_dollars DESC
   
-  -- we see that 2013 has only one month recorded in it
+  -- 2016 has maximum sales in usd recorded in it
 
 
 /* Which month did Parch and Posey have the greatest sales in terms of total number of orders? 
 Are all month evenly represented by the dataset?
 */
-
+SELECT EXTRACT(MONTH FROM o.occurred_at) AS month,
+       SUM(o.total_amt_usd) AS total_dollars
+FROM orders o
+GROUP BY month
+ORDER BY total_dollars DESC
+LIMIT 2
 
 -- Parch and Posey has the greatest sales in December and October
 
@@ -402,7 +406,14 @@ Are all month evenly represented by the dataset?
 /*
 In which month of which year did Walmart spend the most on gloss paper in terms of dollars?
 */
-
+SELECT 	EXTRACT(YEAR FROM o.occurred_at) AS year,
+		EXTRACT(MONTH FROM o.occurred_at) AS month,
+       	SUM(o.gloss_amt_usd) AS gloss_dollars
+FROM orders o
+JOIN accounts a ON o.account_id = a.id
+WHERE a.name = 'Walmart'
+GROUP BY year, month
+ORDER BY gloss_dollars DESC
 
 
 /*CASE STATEMENTS*/
@@ -411,16 +422,48 @@ In which month of which year did Walmart spend the most on gloss paper in terms 
 Write a query to display for each other, the account ID, total amount of the order, and the level of the order -
 'Large' or 'Small' - depending on if the order is $3000 or more, or less than $3000.
 */
+SELECT 	a.id AS account_id,
+		SUM(o.total_amt_usd) AS total_order,
+		CASE 
+			WHEN SUM(o.total_amt_usd) >= 3000 THEN 'Large'
+			ELSE 'Small'
+		END AS sales_group
+FROM orders o
+JOIN accounts a ON o.account_id = a.id
+GROUP BY a.id
+ORDER BY total_order DESC
 
 
 
-
-/*
+/* 
 Write a query to display the number of orders in each of three categories, based on the total number of items in each order
 The three categories are: 'At Least 2000', 'Between 1000 and 2000', and 'Less than 1000'.
 */
+SELECT CASE WHEN total > 2000 THEN 'At Least 2000'
+			WHEN total BETWEEN 1000 AND 2000 THEN 'Between 1000 and 2000'
+			ELSE 'Less than 1000'
+			END AS orders_group,
+			COUNT(*) AS order_count
+FROM orders 
+GROUP BY  orders_group
+ORDER BY COUNT(*) DESC
 
 
+/*
+We would like to identify top performing sales reps, which are sales reps asscoiated with more than 200 orders.
+Create a table with the sales rep name, the total number of orders, and a column with top or not depending on
+if they have more than 200 orders. Place the top sales people first in your final table.
+*/
+SELECT s.name AS sales_rep,
+		COUNT(*) AS order_count,
+		CASE WHEN Count(*) > 200 THEN 'Top_seller'
+		ELSE 'Low_seller'
+		END AS sales_rep_group
+FROM orders o
+JOIN accounts a ON o.account_id = a.id
+JOIN sales_reps s ON a.sales_rep_id = s.id
+GROUP BY s.name
+ORDER BY order_count DESC
 
 
 /* 
@@ -432,11 +475,14 @@ the total sales of all orders for the customer, and the level.
 Order with the top spending customers listed first.
 */
 
-
-
-/*
-We would like to identify top performing sales reps, which are sales reps asscoiated with more than 200 orders.
-Create a table with the sales rep name, the total number of orders, and a column with top or not depending on
-if they have more than 200 orders. Place the top sales people first in your final table.
-*/
-
+SELECT a.name AS acount_name,
+	   SUM(o.total_amt_usd) AS dollar_amount,
+	   CASE WHEN SUM(o.total_amt_usd) > 200000 THEN 'High_spenders'
+			WHEN SUM(o.total_amt_usd) BETWEEN 100000 AND 200000 THEN 'Medium_spenders'
+			ELSE 'Low_spenders'
+	   END AS customers_group
+FROM accounts a
+INNER JOIN orders o
+ON a.id = o.account_id
+GROUP BY a.name
+ORDER BY SUM(o.total_amt_usd) DESC;
