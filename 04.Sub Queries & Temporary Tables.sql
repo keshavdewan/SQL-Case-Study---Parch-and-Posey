@@ -1,21 +1,20 @@
-/*SUB-QUERIES*/
+/* Use of CTEs */
 
 /*
 Find the average number of events for each day for each channel.
 */
-SELECT channel,
-		AVG(num_events) AS avg_events
-FROM(
-		SELECT w.channel, 
-				EXTRACT(DAY FROM w.occurred_at) AS day,
-				COUNT(*) AS num_events
-		FROM web_events w
-		GROUP BY w.channel, 
-					day
-		ORDER BY num_events
-		) AS events_table
+WITH each_channel AS (
+	SELECT 	EXTRACT(DAY FROM occurred_at) AS day,
+		channel,
+		COUNT(*) AS num_events
+	FROM web_events
+	GROUP BY channel, day		
+)
+SELECT AVG(num_events),
+	channel
+FROM each_channel 
 GROUP BY channel
-ORDER BY avg_events DESC
+ORDER BY AVG(num_events) DESC
 
 
 /*
@@ -41,19 +40,17 @@ AND EXTRACT(MONTH FROM o.occurred_at) = f.first_order_month
 /*
 What is the lifetime average amount spent in terms of total_amt_usd for the top 10 total spending accounts?
 */
-WITH top_10_accounts AS (
-    -- Find top 10 accounts based on their total spending
-    SELECT a.id AS account_id,
-           SUM(o.total_amt_usd) AS total_spent
-    FROM orders o
-    INNER JOIN accounts a ON a.id = o.account_id
-    GROUP BY a.id
-    ORDER BY total_spent DESC
-    LIMIT 10
+WITH total_spent AS (
+		SELECT o.account_id,
+				SUM(o.total_amt_usd) AS total_spend
+		FROM orders o
+		GROUP BY o.account_id
+		ORDER BY total_spend DESC
+		LIMIT 10
 )
 SELECT AVG(o.total_amt_usd) AS avg_order_amount_for_top_10_accounts
 FROM orders o
-JOIN top_10_accounts t ON o.account_id = t.account_id
+JOIN total_spent ts ON o.account_id = ts.account_id
 
 
 /*
@@ -116,62 +113,26 @@ ORDER BY sr.total_sales DESC
 /*
 For the region with the largest sales total_amt_usd, how many total orders were placed?
 */
---1 Calculate region with largest sales
+WITH region_sales AS (
+			SELECT r.name AS region_name,
+					SUM(o.total_amt_usd) AS total_amt
+			FROM orders o
+			JOIN accounts a ON o.account_id = a.id
+			JOIN sales_reps s ON a.sales_rep_id = s.id
+			JOIN region r ON s.region_id = r.id
+			GROUP BY region_name
+),
+	max_amt AS (
+			SELECT MAX(total_amt) AS max_amt
+			FROM region_sales
+	)
+SELECT r.name AS region,
+		COUNT(*) AS order_count
+FROM orders o
+		JOIN accounts a ON a.id = o.account_id
+		JOIN sales_reps s ON s.id = a.sales_rep_id
+		JOIN region r ON r.id = s.region_id
+		GROUP BY r.name
+HAVING SUM(o.total_amt_usd) = (SELECT * FROM max_amt)
 
 
-
-
-
-/*Common Table Expressions (CTEs)*/
-
-/*
-Find the average number of events for each day for each channel.
-*/
-WITH all_events AS(
-		SELECT w.channel AS channel,
-				EXTRACT(DAY FROM w.occurred_at) AS day,
-				COUNT(*) AS num_events
-		FROM web_events w
-		GROUP BY channel, day
-)
-SELECT channel,
-		AVG(num_events) AS avg_events
-FROM all_events
-GROUP BY channel
-ORDER BY avg_events
-
-
-
-/*
-Find only the orders that took place in the same month and year as the first order,
-and then pull the average for each type of paper 'qty' in this month.
-*/
-
-
-
-
-/*
-What is the lifetime average amount spent in terms of total_amt_usd for the top 10 total spending accounts?
-*/
-
-
-
-
-/*
-What is the lifetime average amount spent in terms of total_amt_usd, including only the
-companies that spent more per order, on average, than the average of all orders.
-*/
-
-
-
-
-/*
-Provide the name of the sales rep in each region with the largest amount of total_amt_usd sales.
-*/
-
-
-
-
-/*
-For the region with the largest sales total_amt_usd, how many total orders were placed?
-*/
